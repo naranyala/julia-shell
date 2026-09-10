@@ -1,0 +1,7 @@
+#!/usr/bin/env julia
+
+using Pkg
+Pkg.activate(joinpath(@__DIR__, ".."))
+using Dockyard
+
+exit(Dockyard.main())

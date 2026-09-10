@@ -1,0 +1,14 @@
+[Unit]
+Description=Dockyard desktop continuity daemon
+After=graphical-session.target
+PartOf=graphical-session.target
+
+[Service]
+Type=simple
+ExecStart=%h/.local/bin/dockyardd
+Restart=on-failure
+RestartSec=2s
+Environment=DOCKYARD_REPO=%h/.config/dockyard/repository
+
+[Install]
+WantedBy=graphical-session.target
