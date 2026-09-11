@@ -1,5 +1,10 @@
 # Configuration
 
+A repository is portable metadata plus an authoritative `files/` tree. Choose
+which profile to operate on with `--profile NAME`; the default is `personal`.
+The schema is deliberately small while the compositor and shell adapters are
+still under development.
+
 ## Repository layout
 
 ```text
@@ -11,7 +16,9 @@ repository/
 ```
 
 `profiles/<name>.toml` is portable metadata. `files/` contains authoritative
-file and directory content. Runtime state is kept outside the repository.
+file and directory content. Runtime state is kept outside the repository, so a
+repository can be version controlled without including sockets, journals, or
+machine-local revisions.
 
 ## Profile schema
 
@@ -36,11 +43,15 @@ label = "Firefox"
 [[dotfiles]]
 id = "quickshell"
 source = "files/quickshell"
-target = "${XDG_CONFIG_HOME}/quickshell/dockyard"
+target = "${XDG_CONFIG_HOME}/quickshell/julia-shell"
 mode = "symlink"
 platforms = ["linux"]
 secret = false
 ```
+
+`schema` and `profile` are required. Unknown profile fields are not currently
+interpreted. A profile may contain zero or more pins and dotfile entries; entry
+IDs and `(desktop_id, scope)` pairs must be unique.
 
 ## Dock fields
 
@@ -49,7 +60,7 @@ secret = false
 - `autohide`: `never`, `always`, or `intelligent`.
 - `desktop_id`: the durable application identity. Keep the `.desktop` suffix.
 - `position`: a non-negative stable ordering value. Pin mutations renumber the
-  list in increments of ten.
+  list in increments of ten; `reorder` uses one-based list positions.
 - `match_app_ids`: optional compositor identity aliases used by the future
   adapter.
 - `launch`: `desktop-entry` or `command`. The current safe core supports the
@@ -62,7 +73,7 @@ secret = false
 - `id`: unique logical identifier used by plans, snapshots, and restore
   selectors.
 - `source`: relative path inside the repository. Source traversal outside the
-  repository is rejected.
+  repository is rejected. The source must exist for deployment.
 - `target`: absolute path or a path using the approved `HOME`/XDG variables.
 - `mode`: `symlink`, `copy`, or `generated`. Generated entries are declared in
   the schema but intentionally rejected until their renderer is implemented.
@@ -88,18 +99,31 @@ XDG_RUNTIME_DIR
 
 Targets must remain under the user HOME or an XDG user directory after existing
 parent symlinks are resolved. System directories, `sudo` escalation, and
-unreviewed external targets are not supported.
+unreviewed external targets are not supported. `source` paths are checked
+against the repository root as well.
 
 ## Runtime locations
 
-- `$XDG_STATE_HOME/dockyard/snapshots/`: immutable pre-change snapshots.
-- `$XDG_STATE_HOME/dockyard/journal/`: transaction records and recovery
+- `$XDG_STATE_HOME/julia-shell/snapshots/`: immutable pre-change snapshots.
+- `$XDG_STATE_HOME/julia-shell/journal/`: transaction records and recovery
   markers.
-- `$XDG_STATE_HOME/dockyard/profiles/`: repository-namespaced pin revision and
-  idempotency state.
-- `$XDG_CACHE_HOME/dockyard/`: reserved for rebuildable application indexes.
-- `$XDG_RUNTIME_DIR/dockyard/dockyard.sock`: per-user daemon socket.
+- `$XDG_STATE_HOME/julia-shell/profiles/`: repository-namespaced pin revision and
+  idempotency state, plus the per-repository `mutation.lock`.
+- `$XDG_CACHE_HOME/julia-shell/`: reserved for rebuildable application indexes.
+- `$XDG_RUNTIME_DIR/julia-shell/julia-shell.sock`: per-user daemon socket.
 
 If an XDG variable is unset, the implementation uses the conventional HOME
-subdirectory. The runtime fallback is a temporary directory and should be
-replaced with a real user runtime directory for a long-lived daemon.
+subdirectory for config, data, state, and cache. The runtime fallback is a
+temporary directory and should be replaced with a real user runtime directory
+for a long-lived daemon.
+
+## Practical guidance
+
+- Keep `profiles/` and `files/` under source control, excluding host-specific
+  secrets and generated artifacts.
+- Prefer `${XDG_CONFIG_HOME}` or `${HOME}` in targets so the repository remains
+  portable between machines.
+- Use `secret = true` for entries that should stay visible in the profile but
+  must be excluded from deployment. Adoption also blocks likely secret names
+  unless `--allow-secret` is supplied.
+- Use `--dry-run` and review `plan` classifications before the first apply.

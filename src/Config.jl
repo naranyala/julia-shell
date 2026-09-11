@@ -7,16 +7,16 @@ function xdg_paths(; env=ENV)
     data = get(env, "XDG_DATA_HOME", joinpath(home, ".local", "share"))
     state = get(env, "XDG_STATE_HOME", joinpath(home, ".local", "state"))
     cache = get(env, "XDG_CACHE_HOME", joinpath(home, ".cache"))
-    runtime = get(env, "XDG_RUNTIME_DIR", joinpath(tempdir(), "dockyard-runtime"))
+    runtime = get(env, "XDG_RUNTIME_DIR", joinpath(tempdir(), "julia-shell-runtime"))
     Dict{String,String}("home" => abspath(config == "" ? home : home),
                         "config" => abspath(config), "data" => abspath(data),
                         "state" => abspath(state), "cache" => abspath(cache),
                         "runtime" => abspath(runtime))
 end
 
-dockyard_state_dir(; env=ENV) = joinpath(xdg_paths(; env)["state"], "dockyard")
-dockyard_cache_dir(; env=ENV) = joinpath(xdg_paths(; env)["cache"], "dockyard")
-dockyard_runtime_dir(; env=ENV) = joinpath(xdg_paths(; env)["runtime"], "dockyard")
+juliashell_state_dir(; env=ENV) = joinpath(xdg_paths(; env)["state"], "julia-shell")
+juliashell_cache_dir(; env=ENV) = joinpath(xdg_paths(; env)["cache"], "julia-shell")
+juliashell_runtime_dir(; env=ENV) = joinpath(xdg_paths(; env)["runtime"], "julia-shell")
 
 repository_profile_path(repo::AbstractString, profile::AbstractString="personal") =
     joinpath(abspath(repo), "profiles", String(profile) * ".toml")
@@ -203,13 +203,13 @@ end
 function init_repository(repo::AbstractString; profile="personal", force=false)
     root = abspath(repo)
     if ispath(root) && !isdir(root)
-        throw(DockyardError(:invalid_repository, "repository path is not a directory";
+        throw(JuliaShellError(:invalid_repository, "repository path is not a directory";
                             details=Dict("path" => root), remediation="choose a directory"))
     end
     isdir(root) || mkpath(root)
     profile_path = repository_profile_path(root, profile)
     isfile(profile_path) && !force &&
-        throw(DockyardError(:already_initialized, "profile already exists";
+        throw(JuliaShellError(:already_initialized, "profile already exists";
                             details=Dict("path" => profile_path), remediation="use --force only to replace it"))
     mkpath(dirname(profile_path))
     mkpath(joinpath(root, "files"))
@@ -224,10 +224,10 @@ function resolve_variables(value::AbstractString; env=ENV, allowlist=DEFAULT_ALL
         match_result = match(pattern, result)
         match_result === nothing && return result
         name = match_result.captures[1]
-        name in allowlist || throw(DockyardError(:disallowed_variable,
+        name in allowlist || throw(JuliaShellError(:disallowed_variable,
             "variable $name is not allowed in managed paths";
             details=Dict("variable" => name), remediation="use an approved XDG or HOME variable"))
-        haskey(env, name) || throw(DockyardError(:missing_variable,
+        haskey(env, name) || throw(JuliaShellError(:missing_variable,
             "required variable $name is not set"; details=Dict("variable" => name),
             remediation="set the variable or use an absolute path"))
         result = replace(result, match_result.match => String(env[name]); count=1)

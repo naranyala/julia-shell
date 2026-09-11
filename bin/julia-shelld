@@ -1,0 +1,9 @@
+#!/usr/bin/env julia
+
+using Pkg
+Pkg.activate(joinpath(@__DIR__, ".."))
+using JuliaShell
+
+repo = get(ENV, "JULIA_SHELL_REPO", ".")
+socket_path = get(ENV, "JULIA_SHELL_SOCKET", nothing)
+JuliaShell.run_daemon(repo; socket_path=socket_path)

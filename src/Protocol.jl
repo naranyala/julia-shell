@@ -3,6 +3,8 @@ mutable struct _JSONParser
     index::Int
 end
 
+const PROTOCOL_VERSION = 1
+
 _json_skip!(p) = while p.index <= length(p.text) && p.text[p.index] in (' ', '\n', '\r', '\t'); p.index += 1; end
 
 function _json_string!(p)
@@ -117,32 +119,90 @@ function encode_message(message::AbstractDict)
 end
 
 function decode_message(line::AbstractString; max_bytes=1024 * 1024)
-    ncodeunits(line) <= max_bytes || throw(DockyardError(:message_too_large, "protocol message exceeds the size limit";
+    ncodeunits(line) <= max_bytes || throw(JuliaShellError(:message_too_large, "protocol message exceeds the size limit";
         details=Dict("max_bytes" => max_bytes), remediation="send a smaller request"))
-    parser = _JSONParser(collect(String(strip(line))), 1)
-    value = _json_value!(parser)
-    _json_skip!(parser)
-    parser.index > length(parser.text) || throw(ArgumentError("trailing data after JSON message"))
-    value isa AbstractDict || throw(ArgumentError("protocol message must be an object"))
+    value = try
+        parser = _JSONParser(collect(String(strip(line))), 1)
+        parsed = _json_value!(parser)
+        _json_skip!(parser)
+        parser.index > length(parser.text) || throw(ArgumentError("trailing data after JSON message"))
+        parsed
+    catch err
+        err isa JuliaShellError && rethrow()
+        throw(JuliaShellError(:invalid_message, sprint(showerror, err);
+            remediation="send one valid JSON object per line"))
+    end
+    value isa AbstractDict || throw(JuliaShellError(:invalid_message, "protocol message must be an object";
+        remediation="send one valid JSON object per line"))
     version = get(value, "v", nothing)
-    version == 1 || throw(DockyardError(:protocol_version, "unsupported protocol version";
-        details=Dict("received" => version, "supported" => 1), remediation="upgrade the client or daemon"))
+    version == PROTOCOL_VERSION || throw(JuliaShellError(:protocol_version, "unsupported protocol version";
+        details=Dict("received" => version, "supported" => PROTOCOL_VERSION), remediation="upgrade the client or daemon"))
     value
 end
 
-protocol_request(id, method, params=Dict{String,Any}()) = Dict{String,Any}("v" => 1, "id" => String(id), "method" => String(method), "params" => params)
-protocol_response(id, result) = Dict{String,Any}("v" => 1, "id" => String(id), "ok" => true, "result" => result)
-protocol_error(id, error) = Dict{String,Any}("v" => 1, "id" => String(id), "ok" => false, "error" => error)
-protocol_event(event, revision, topics) = Dict{String,Any}("v" => 1, "event" => String(event), "revision" => Int(revision), "topics" => topics)
+function _invalid_request(message; field=nothing, value=nothing)
+    details = Dict{String,Any}()
+    field === nothing || (details["field"] = String(field))
+    value === nothing || (details["value"] = value)
+    JuliaShellError(:invalid_request, String(message); details,
+                    remediation="send a valid v$(PROTOCOL_VERSION) daemon request")
+end
+
+function validate_protocol_request(request::AbstractDict)
+    get(request, "v", nothing) == PROTOCOL_VERSION ||
+        throw(_invalid_request("request has an unsupported protocol version"; field="v",
+                               value=get(request, "v", nothing)))
+    id = get(request, "id", nothing)
+    id isa AbstractString && !isempty(strip(String(id))) ||
+        throw(_invalid_request("request id must be a non-empty string"; field="id", value=id))
+    method = get(request, "method", nothing)
+    method isa AbstractString && !isempty(strip(String(method))) ||
+        throw(_invalid_request("request method must be a non-empty string"; field="method", value=method))
+    params = get(request, "params", Dict{String,Any}())
+    params isa AbstractDict ||
+        throw(_invalid_request("request params must be an object"; field="params", value=params))
+
+    profile = get(params, "profile", nothing)
+    profile === nothing || (profile isa AbstractString && !isempty(strip(String(profile))) ||
+        throw(_invalid_request("profile must be a non-empty string"; field="params.profile", value=profile)))
+    if method in ("pins.pin", "pins.unpin")
+        desktop_id = get(params, "desktop_id", nothing)
+        desktop_id isa AbstractString && !isempty(strip(String(desktop_id))) ||
+            throw(_invalid_request("desktop_id must be a non-empty string"; field="params.desktop_id", value=desktop_id))
+    elseif method == "pins.reorder"
+        for field in ("from", "to")
+            value = get(params, field, nothing)
+            value isa Integer && value > 0 ||
+                throw(_invalid_request("reorder positions must be positive integers"; field="params.$field", value=value))
+        end
+    end
+    if haskey(params, "if_revision")
+        revision = params["if_revision"]
+        revision isa Integer && revision >= 0 ||
+            throw(_invalid_request("if_revision must be a non-negative integer"; field="params.if_revision", value=revision))
+    end
+    if haskey(params, "position")
+        position = params["position"]
+        position isa Integer && position > 0 ||
+            throw(_invalid_request("position must be a positive integer"; field="params.position", value=position))
+    end
+    request
+end
+
+protocol_request(id, method, params=Dict{String,Any}()) = Dict{String,Any}("v" => PROTOCOL_VERSION, "id" => String(id), "method" => String(method), "params" => params)
+protocol_response(id, result) = Dict{String,Any}("v" => PROTOCOL_VERSION, "id" => String(id), "ok" => true, "result" => result)
+protocol_error(id, error) = Dict{String,Any}("v" => PROTOCOL_VERSION, "id" => String(id), "ok" => false, "error" => error)
+protocol_event(event, revision, topics) = Dict{String,Any}("v" => PROTOCOL_VERSION, "event" => String(event), "revision" => Int(revision), "topics" => topics)
 
 "Perform one request/response round trip over the per-user Unix socket."
 function request_daemon(socket_path::AbstractString, message::AbstractDict)
+    validate_protocol_request(message)
     socket = try
         connect(String(socket_path))
     catch err
-        throw(DockyardError(:daemon_unavailable, "could not connect to dockyardd";
+        throw(JuliaShellError(:daemon_unavailable, "could not connect to julia-shelld";
             details=Dict("socket" => String(socket_path), "error" => sprint(showerror, err)),
-            remediation="start dockyardd or use the offline CLI"))
+            remediation="start julia-shelld or use the offline CLI"))
     end
     try
         write(socket, encode_message(message))

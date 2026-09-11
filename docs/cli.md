@@ -1,34 +1,37 @@
-# CLI Reference
+# CLI reference
 
-Run `./bin/dockyard --help` for the command summary. Every command accepts
-`--repo PATH` and `--profile NAME`; read commands also accept `--json`.
+Run `./bin/julia-shell --help` for the command summary. Options may appear
+before or after the command. `--repo PATH` and `--profile NAME` select the
+repository and profile; `JULIA_SHELL_REPO` supplies the default repository.
+`--json` switches the result to machine-readable JSON.
 
 ## Commands
 
-| Command | Purpose | Mutation |
+| Command | Purpose | Effect |
 | --- | --- | --- |
-| `init` | Create repository skeleton and starter profile. | Yes |
-| `status` | Show profile health, revision, pin count, and drift summary. | No |
-| `plan` | Produce deterministic proposed actions and a plan hash. | No |
-| `apply` | Snapshot, stage, commit, and verify planned file changes. | Yes |
-| `adopt PATH` | Snapshot an existing path and import it into `files/`. | Yes |
-| `diff [ID]` | Show plan classifications and reasons. | No |
-| `pin ID` | Add a desktop-file ID to the dock. | Yes |
-| `unpin ID` | Remove a desktop-file ID from the dock. | Yes |
-| `reorder FROM TO` | Move one pin using one-based list positions. | Yes |
-| `snapshot list` | List recovery snapshots. | No |
-| `snapshot create` | Snapshot current targets described by the plan. | Yes |
-| `snapshot verify PATH` | Verify snapshot manifest and payload hashes. | No |
-| `restore PATH [ID...]` | Restore all or selected logical snapshot entries. | Yes |
-| `verify PATH` | Alias for snapshot verification. | No |
-| `export PATH` | Write a portable repository directory and checksum manifest. | Yes |
-| `doctor` | Check profile, paths, sources, and stale journals. | No |
+| `init` | Create repository skeleton and starter profile. | Repository |
+| `status` | Show profile health, revision, pin count, and drift summary. | None |
+| `plan` | Produce deterministic proposed actions and a plan hash. | None |
+| `apply` | Snapshot, stage, commit, and verify planned file changes. | Live targets + state |
+| `adopt PATH` | Snapshot an existing path and import it into `files/`. | Repository + state |
+| `diff [ID]` | Show plan classifications and reasons. | None |
+| `pin ID` | Add a desktop-file ID to the dock. | Profile + state |
+| `unpin ID` | Remove a desktop-file ID from the dock. | Profile + state |
+| `reorder FROM TO` | Move one pin using one-based list positions. | Profile + state |
+| `snapshot list` | List recovery snapshots. | None |
+| `snapshot create` | Snapshot current targets described by the plan. | State |
+| `snapshot verify PATH` | Verify snapshot manifest and payload hashes. | None |
+| `restore PATH [ID...]` | Restore all or selected logical snapshot entries. | Live targets + state |
+| `verify PATH` | Alias for snapshot verification. | None |
+| `export PATH` | Write a portable repository directory and checksum manifest. | Destination |
+| `doctor` | Check profile, paths, sources, and stale journals. | None |
 
-## Safety options
+## Common options and safety controls
 
-- `--yes`: required for destructive file and pin commands. It never infers
-  confirmation from TTY state.
-- `--dry-run`: render an apply plan without mutating targets.
+- `--yes`: required for `apply`, `adopt`, `pin`, `unpin`, `reorder`, `restore`,
+  and `export`. It never infers confirmation from TTY state. `init` and
+  `snapshot create` write repository/state data without this flag.
+- `--dry-run`: render an `apply` plan without mutating targets.
 - `--force`: permit applying a plan after its source or target changed. Prefer
   generating a new plan; use this only when the change is understood.
 - `--snapshot-root PATH`: place snapshots under an explicit directory.
@@ -42,7 +45,7 @@ Run `./bin/dockyard --help` for the command summary. Every command accepts
 
 ## Plan output
 
-JSON plan output has this shape:
+JSON plan output has this shape (the action arrays contain the detailed plan):
 
 ```json
 {
@@ -59,7 +62,8 @@ JSON plan output has this shape:
 
 Action kinds include `no_op`, `create`, `drift`, `conflict`, `missing_source`,
 `excluded`, and `unsafe`. A plan hash is stable for the same ordered action
-content; the plan ID is unique for each planning request.
+content; the plan ID is unique for each planning request. Use the hash and
+revision as the review boundary before a later apply.
 
 ## Error output and exit codes
 
@@ -79,4 +83,4 @@ codes are:
 | `8` | Snapshot or export integrity failure. |
 
 The command surface will gain mandatory restore previews, bootstrap, richer
-diffs, archive validation, and repair controls as tracked in `TODOS.md`.
+diffs, archive validation, and repair controls as tracked in [`TODOS.md`](../TODOS.md).

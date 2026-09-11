@@ -2,6 +2,6 @@
 
 using Pkg
 Pkg.activate(joinpath(@__DIR__, ".."))
-using Dockyard
+using JuliaShell
 
-exit(Dockyard.main())
+exit(JuliaShell.main())

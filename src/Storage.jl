@@ -40,7 +40,7 @@ function safe_target_path(target::AbstractString; env=ENV, approved_roots=nothin
         normpath(parent)
     end
     any(is_path_within(resolved_parent, root) for root in roots) ||
-        throw(DockyardError(:unsafe_path, "target path is outside approved user roots";
+        throw(JuliaShellError(:unsafe_path, "target path is outside approved user roots";
                             details=Dict("target" => String(target), "resolved" => absolute,
                                          "approved_roots" => roots),
                             remediation="use a path below HOME or an XDG user directory"))
@@ -51,7 +51,7 @@ function _safe_source_path(repo::AbstractString, source::AbstractString; env=ENV
     expanded = resolve_variables(source; env=env)
     candidate = normpath(isabspath(expanded) ? expanded : joinpath(repo, expanded))
     is_path_within(candidate, repo) ||
-        throw(DockyardError(:unsafe_path, "source path escapes the repository";
+        throw(JuliaShellError(:unsafe_path, "source path escapes the repository";
                             details=Dict("source" => String(source), "repository" => String(repo)),
                             remediation="use a relative path inside the repository files tree"))
     candidate
@@ -60,7 +60,7 @@ end
 "Export portable profile metadata and files with a self-contained checksum manifest."
 function export_repository(repo::AbstractString, destination::AbstractString; env=ENV)
     destination = abspath(String(destination))
-    ispath(destination) && throw(DockyardError(:destination_exists, "export destination already exists";
+    ispath(destination) && throw(JuliaShellError(:destination_exists, "export destination already exists";
         details=Dict("path" => destination), remediation="choose a new destination"))
     mkpath(destination)
     root = abspath(String(repo))
@@ -160,7 +160,7 @@ function _snapshot_id()
 end
 
 function _snapshot_root(root=nothing; env=ENV)
-    root === nothing ? joinpath(dockyard_state_dir(; env), "snapshots") : abspath(String(root))
+    root === nothing ? joinpath(juliashell_state_dir(; env), "snapshots") : abspath(String(root))
 end
 
 "Create an immutable snapshot of the existing targets named by plan actions."
@@ -205,7 +205,7 @@ function create_snapshot(actions::AbstractVector{<:PlanAction}; root=nothing, op
             save_toml_atomic(snapshot_file, metadata)
         catch
         end
-        throw(DockyardError(:snapshot_failed, "snapshot could not be completed";
+        throw(JuliaShellError(:snapshot_failed, "snapshot could not be completed";
                             details=Dict("path" => directory, "error" => sprint(showerror, err)),
                             remediation="free snapshot storage and retry; the incomplete snapshot is not restorable"))
     end
@@ -213,11 +213,11 @@ end
 
 function _load_snapshot(path::AbstractString)
     file = isfile(path) ? String(path) : joinpath(String(path), "snapshot.toml")
-    isfile(file) || throw(DockyardError(:snapshot_missing, "snapshot manifest does not exist";
+    isfile(file) || throw(JuliaShellError(:snapshot_missing, "snapshot manifest does not exist";
                                         details=Dict("path" => file), remediation="run snapshot list"))
     data = _string_dict(TOML.parsefile(file))
     get(data, "status", "incomplete") == "complete" ||
-        throw(DockyardError(:snapshot_incomplete, "snapshot is incomplete and cannot be restored";
+        throw(JuliaShellError(:snapshot_incomplete, "snapshot is incomplete and cannot be restored";
                             details=Dict("path" => dirname(file)), remediation="choose a completed snapshot"))
     data, dirname(file)
 end
@@ -241,7 +241,7 @@ function verify_snapshot(path::AbstractString)
         _entry_exists(payload) || (push!(mismatches, String(entry["id"]) * ": missing payload"); continue)
         sha256_path(payload) == String(entry["sha256"]) || push!(mismatches, String(entry["id"]) * ": payload hash")
     end
-    isempty(mismatches) || throw(DockyardError(:integrity_failure, "snapshot verification failed";
+    isempty(mismatches) || throw(JuliaShellError(:integrity_failure, "snapshot verification failed";
         details=Dict("path" => directory, "mismatches" => mismatches),
         remediation="do not restore this snapshot; recover it from another verified backup"))
     true

@@ -2,14 +2,14 @@
 
 julia_version = "1.12.7"
 manifest_format = "2.0"
-project_hash = "2a35152e5ca9d1ad8a8bbeb4247b8cdd109d779a"
+project_hash = "c6335a2531dc0658040891fd74eeb649e02da754"
 
 [[deps.Dates]]
 deps = ["Printf"]
 uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
-[[deps.Dockyard]]
+[[deps.JuliaShell]]
 deps = ["Dates", "SHA", "Sockets", "TOML", "UUIDs"]
 path = "."
 uuid = "8f9a4b42-4b0f-4a4a-8e6e-5d3e4c9f1a70"

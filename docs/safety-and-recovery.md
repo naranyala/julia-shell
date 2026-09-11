@@ -1,6 +1,6 @@
-# Safety And Recovery
+# Safety and recovery
 
-Dockyard treats configuration writes as recoverable transactions. Preview is
+julia-shell treats configuration writes as recoverable transactions. Preview is
 the normal workflow; a destructive operation should never be the first place a
 path or content problem is discovered.
 
@@ -10,16 +10,21 @@ path or content problem is discovered.
 resolve -> plan -> snapshot -> stage -> commit -> verify
 ```
 
-1. Resolve expands approved variables, normalizes paths, and checks target
+1. Acquire the repository mutation lock so another writer cannot interleave
+   profile or target changes.
+2. Resolve expands approved variables, normalizes paths, and checks target
    parent containment.
-2. Plan hashes source and target content and classifies each action.
-3. Snapshot copies every existing affected target and writes a manifest before
+3. Plan hashes source and target content and classifies each action.
+4. Snapshot copies every existing affected target and writes a manifest before
    any live target is moved.
-4. Stage writes unique sibling paths on the target filesystem.
-5. Commit moves existing targets to journaled sibling backups, then moves staged
+5. Stage writes unique sibling paths on the target filesystem.
+6. Commit moves existing targets to journaled sibling backups, then moves staged
    entries into place.
-6. Verify checks type, symlink destination, and content hash. Backups are
+7. Verify checks type, symlink destination, and content hash. Backups are
    removed only after verification.
+
+The lock is released on both success and failure. It complements, rather than
+replaces, plan revision checks and request-id idempotency.
 
 ## Plan classifications
 
@@ -34,6 +39,8 @@ resolve -> plan -> snapshot -> stage -> commit -> verify
 Conflicts, unsafe paths, and missing sources block `apply`. Generate a fresh
 plan after resolving the underlying condition. `--force` is available for a
 known stale-plan race but does not bypass unsafe-path or profile validation.
+The plan hash and revision are the review boundary: if either no longer matches
+the intended state, inspect a new plan before applying.
 
 ## Snapshot contents
 
@@ -51,9 +58,9 @@ manifest hash, payload hashes, relative payload paths, and symlink metadata.
 List and verify a recovery point before restoring:
 
 ```sh
-./bin/dockyard snapshot list --json
-./bin/dockyard snapshot verify /path/to/snapshot --json
-./bin/dockyard restore /path/to/snapshot --yes
+./bin/julia-shell snapshot list --json
+./bin/julia-shell snapshot verify /path/to/snapshot --json
+./bin/julia-shell restore /path/to/snapshot --repo "$HOME/.config/julia-shell/repository" --yes
 ```
 
 Restore selectors use logical entry IDs. Unknown selectors fail rather than
@@ -61,8 +68,8 @@ widening the restore scope. Existing current targets are snapshotted again as
 a pre-restore point. Payloads are validated before staging and targets are
 checked against the same approved user-root policy as apply.
 
-The current CLI requires `--yes`; mandatory target-by-target restore preview and
-archive extraction validation are tracked in `TODOS.md`.
+The current CLI requires `--yes` for restore; mandatory target-by-target restore
+preview and archive extraction validation are tracked in [`TODOS.md`](../TODOS.md).
 
 ## Journal recovery
 
@@ -71,10 +78,13 @@ status before the operation occurs. On daemon startup, unfinished journals are
 rolled back in reverse order. Staging paths are removed when no live target was
 committed; committed or target-moved steps restore their recorded backups.
 
+Recovery is conservative: an unfinished journal is not silently discarded, and
+the daemon does not accept clients until startup recovery has run.
+
 Inspect journals when recovery reports a failure:
 
 ```sh
-./bin/dockyard doctor --repo "$HOME/.config/dockyard/repository" --json
+./bin/julia-shell doctor --repo "$HOME/.config/julia-shell/repository" --json
 ```
 
 Do not delete a failed journal or its backup paths until the affected targets

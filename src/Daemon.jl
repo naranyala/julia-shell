@@ -23,7 +23,7 @@ function _daemon_dispatch(request, repo::String, env)
             expected_revision=get(params, "if_revision", nothing),
             request_id=String(get(request, "id", string(uuid4()))), env=env)
     else
-        throw(DockyardError(:unknown_method, "unknown protocol method";
+        throw(JuliaShellError(:unknown_method, "unknown protocol method";
                             details=Dict("method" => method), remediation="use status, plan, or pins methods"))
     end
 end
@@ -35,11 +35,12 @@ function _serve_client(client, repo, env)
             request_id = ""
             try
                 request = decode_message(line)
+                validate_protocol_request(request)
                 request_id = String(get(request, "id", ""))
                 result = _daemon_dispatch(request, repo, env)
                 write(client, encode_message(protocol_response(request_id, result)))
             catch err
-                error_data = if err isa DockyardError
+                error_data = if err isa JuliaShellError
                     Dict{String,Any}("code" => String(err.code), "message" => err.message,
                                      "details" => err.details, "remediation" => err.remediation)
                 elseif err isa ValidationError
@@ -61,8 +62,8 @@ end
 
 "Run the resident Unix-domain-socket service. This function blocks until interrupted."
 function run_daemon(repo::AbstractString="."; socket_path=nothing, env=ENV)
-    path = socket_path === nothing ? joinpath(dockyard_runtime_dir(; env), "dockyard.sock") : abspath(String(socket_path))
-    ncodeunits(path) <= 100 || throw(DockyardError(:socket_path_too_long, "Unix socket path is too long";
+    path = socket_path === nothing ? joinpath(juliashell_runtime_dir(; env), "julia-shell.sock") : abspath(String(socket_path))
+    ncodeunits(path) <= 100 || throw(JuliaShellError(:socket_path_too_long, "Unix socket path is too long";
         details=Dict("path" => path, "bytes" => ncodeunits(path)), remediation="set XDG_RUNTIME_DIR to a shorter path"))
     mkpath(dirname(path))
     chmod(dirname(path), 0o700)

@@ -141,19 +141,19 @@ function Base.showerror(io::IO, err::ValidationError)
     end
 end
 
-struct DockyardError <: Exception
+struct JuliaShellError <: Exception
     code::Symbol
     message::String
     details::Dict{String,Any}
     remediation::String
 end
 
-DockyardError(code::Symbol, message::AbstractString;
+JuliaShellError(code::Symbol, message::AbstractString;
               details=Dict{String,Any}(), remediation="") =
-    DockyardError(code, String(message), Dict{String,Any}(string(k) => v for (k, v) in details),
+    JuliaShellError(code, String(message), Dict{String,Any}(string(k) => v for (k, v) in details),
                   String(remediation))
 
-Base.showerror(io::IO, err::DockyardError) = print(io, err.message)
+Base.showerror(io::IO, err::JuliaShellError) = print(io, err.message)
 
 pin_sort_key(pin::Pin) = (pin.position, pin.desktop_id, something(pin.scope, ""))
 ordered_pins(dock::Dock) = sort(copy(dock.pins); by=pin_sort_key)

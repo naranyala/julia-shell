@@ -1,9 +1,13 @@
-# Dockyard Documentation
+# julia-shell documentation
 
-Dockyard is a Julia service and CLI for keeping a personal Wayland desktop
+julia-shell is a Julia service and CLI for keeping a personal Wayland desktop
 reproducible. It manages portable profile metadata, selected dotfiles, recovery
 snapshots, and durable application pins. Quickshell is the presentation layer;
 the Julia package remains the authority for state and mutations.
+
+The safe core is usable from a checkout today. The shell and compositor layers
+are intentionally described as roadmap work until their real protocols are
+validated.
 
 ## Start here
 
@@ -19,16 +23,21 @@ the Julia package remains the authority for state and mutations.
   workflow.
 - [Compatibility and roadmap](compatibility.md): supported baseline and the
   remaining delivery work.
-- [Blueprint extraction](blueprint.md): the requirements-derived architecture
-  summary.
+- [Blueprint and product shape](blueprint.md): the requirements-derived
+  architecture summary and future layers.
 
 ## Current status
 
 The repository contains a tested safe-core vertical slice. Profile parsing,
 path validation, deterministic planning, snapshot verification, journaled file
-deployment, durable pin operations, desktop-entry resolution, JSONL transport,
-and a daemon skeleton are implemented.
+deployment, durable pin operations, desktop-entry resolution, per-repository
+mutation locking, JSONL request validation and transport, and a daemon skeleton
+are implemented.
 
 The real Quickshell panel, Hyprland adapter, filesystem watchers, generated
-entries, archive export, retention, PackageCompiler release bundle, and full
+entries, archive validation/retention, PackageCompiler release bundle, and full
 fault-injection/recovery matrix remain tracked in [`TODOS.md`](../TODOS.md).
+
+For the shortest path through the project, start with [Getting started](getting-started.md),
+then read [Safety and recovery](safety-and-recovery.md) before changing
+mutation code.

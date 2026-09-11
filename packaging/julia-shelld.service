@@ -1,14 +1,14 @@
 [Unit]
-Description=Dockyard desktop continuity daemon
+Description=julia-shell desktop continuity daemon
 After=graphical-session.target
 PartOf=graphical-session.target
 
 [Service]
 Type=simple
-ExecStart=%h/.local/bin/dockyardd
+ExecStart=%h/.local/bin/julia-shelld
 Restart=on-failure
 RestartSec=2s
-Environment=DOCKYARD_REPO=%h/.config/dockyard/repository
+Environment=JULIA_SHELL_REPO=%h/.config/julia-shell/repository
 
 [Install]
 WantedBy=graphical-session.target

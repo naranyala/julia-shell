@@ -36,7 +36,7 @@ function _transaction_dict(result::TransactionResult)
 end
 
 function _parse_cli(args)
-    opts = Dict{String,Any}("repo" => get(ENV, "DOCKYARD_REPO", "."), "profile" => "personal",
+    opts = Dict{String,Any}("repo" => get(ENV, "JULIA_SHELL_REPO", "."), "profile" => "personal",
                             "json" => false, "yes" => false, "dry_run" => false, "force" => false)
     positional = String[]
     index = 1
@@ -55,15 +55,15 @@ function _parse_cli(args)
         elseif startswith(arg, "--")
             key = replace(arg[3:end], "-" => "_")
             index += 1
-            index <= length(args) || throw(DockyardError(:usage, "option $arg requires a value";
-                                                          remediation="run dockyard --help"))
+            index <= length(args) || throw(JuliaShellError(:usage, "option $arg requires a value";
+                                                          remediation="run julia-shell --help"))
             opts[key] = args[index]
         else
             push!(positional, arg)
         end
         index += 1
     end
-    isempty(positional) && throw(DockyardError(:usage, "a command is required"; remediation="run dockyard --help"))
+    isempty(positional) && throw(JuliaShellError(:usage, "a command is required"; remediation="run julia-shell --help"))
     positional[1], positional[2:end], opts
 end
 
@@ -94,13 +94,13 @@ function _human_result(result)
 end
 
 function _require_yes(opts, command)
-    opts["yes"] || throw(DockyardError(:confirmation_required, "$command requires --yes";
+    opts["yes"] || throw(JuliaShellError(:confirmation_required, "$command requires --yes";
                                        remediation="review the plan and pass --yes"))
 end
 
 function _export_repository(repo, destination; env=ENV)
     destination = abspath(String(destination))
-    ispath(destination) && throw(DockyardError(:destination_exists, "export destination already exists";
+    ispath(destination) && throw(JuliaShellError(:destination_exists, "export destination already exists";
         details=Dict("path" => destination), remediation="choose a new destination"))
     mkpath(destination)
     for name in ("profiles", "files")
@@ -153,7 +153,7 @@ end
 "CLI entry point. Returns the documented process exit code instead of calling exit itself."
 function main(args=ARGS)
     if any(arg -> arg in ("-h", "--help"), args)
-        println("dockyard init|status|plan|apply|adopt|diff|pin|unpin|reorder|snapshot|restore|verify|export|doctor")
+        println("julia-shell init|status|plan|apply|adopt|diff|pin|unpin|reorder|snapshot|restore|verify|export|doctor")
         return 0
     end
     command, positional, opts = try
@@ -186,20 +186,20 @@ function main(args=ARGS)
             end
         elseif command == "pin"
             _require_yes(opts, "pin")
-            isempty(positional) && throw(DockyardError(:usage, "pin requires a desktop-file ID"; remediation="run dockyard pin APP.desktop --yes"))
+            isempty(positional) && throw(JuliaShellError(:usage, "pin requires a desktop-file ID"; remediation="run julia-shell pin APP.desktop --yes"))
             pin!(repo, positional[1]; profile=profile_name,
                  position=get(opts, "position", nothing) === nothing ? nothing : parse(Int, String(opts["position"])),
                  expected_revision=get(opts, "revision", nothing) === nothing ? nothing : parse(Int, String(opts["revision"])),
                  request_id=String(get(opts, "request_id", string(uuid4()))))
         elseif command == "unpin"
             _require_yes(opts, "unpin")
-            isempty(positional) && throw(DockyardError(:usage, "unpin requires a desktop-file ID"; remediation="run dockyard unpin APP.desktop --yes"))
+            isempty(positional) && throw(JuliaShellError(:usage, "unpin requires a desktop-file ID"; remediation="run julia-shell unpin APP.desktop --yes"))
             unpin!(repo, positional[1]; profile=profile_name,
                    expected_revision=get(opts, "revision", nothing) === nothing ? nothing : parse(Int, String(opts["revision"])),
                    request_id=String(get(opts, "request_id", string(uuid4()))))
         elseif command == "reorder"
             _require_yes(opts, "reorder")
-            length(positional) == 2 || throw(DockyardError(:usage, "reorder requires FROM and TO"; remediation="run dockyard reorder 2 1 --yes"))
+            length(positional) == 2 || throw(JuliaShellError(:usage, "reorder requires FROM and TO"; remediation="run julia-shell reorder 2 1 --yes"))
             reorder!(repo, parse(Int, positional[1]), parse(Int, positional[2]); profile=profile_name,
                      expected_revision=get(opts, "revision", nothing) === nothing ? nothing : parse(Int, String(opts["revision"])),
                      request_id=String(get(opts, "request_id", string(uuid4()))))
@@ -208,7 +208,7 @@ function main(args=ARGS)
             if subcommand == "list"
                 list_snapshots(; root=get(opts, "snapshot_root", nothing))
             elseif subcommand == "verify"
-                isempty(positional) && throw(DockyardError(:usage, "snapshot verify requires a path"; remediation="run dockyard snapshot verify PATH"))
+                isempty(positional) && throw(JuliaShellError(:usage, "snapshot verify requires a path"; remediation="run julia-shell snapshot verify PATH"))
                 verify_snapshot(positional[2])
                 Dict{String,Any}("ok" => true, "snapshot" => positional[2])
             elseif subcommand == "create"
@@ -217,17 +217,17 @@ function main(args=ARGS)
                     create_snapshot(current.actions; root=get(opts, "snapshot_root", nothing), profile=profile_name,
                                     plan_hash=current.hash), "snapshot created", false, nothing))
             else
-                throw(DockyardError(:usage, "unknown snapshot subcommand"; remediation="use create, list, or verify"))
+                throw(JuliaShellError(:usage, "unknown snapshot subcommand"; remediation="use create, list, or verify"))
             end
         elseif command == "verify"
-            isempty(positional) && throw(DockyardError(:usage, "verify requires a snapshot path"; remediation="run dockyard verify PATH"))
+            isempty(positional) && throw(JuliaShellError(:usage, "verify requires a snapshot path"; remediation="run julia-shell verify PATH"))
             verify_snapshot(positional[1])
             Dict{String,Any}("ok" => true, "snapshot" => positional[1])
         elseif command == "restore"
             _require_yes(opts, "restore")
-            isempty(positional) && throw(DockyardError(:usage, "restore requires a snapshot path"; remediation="run dockyard restore PATH --yes"))
+            isempty(positional) && throw(JuliaShellError(:usage, "restore requires a snapshot path"; remediation="run julia-shell restore PATH --yes"))
             _transaction_dict(restore_snapshot(positional[1]; ids=positional[2:end], yes=true,
-                                                snapshot_root=get(opts, "snapshot_root", nothing)))
+                                                snapshot_root=get(opts, "snapshot_root", nothing), repo=repo))
         elseif command == "export"
             _require_yes(opts, "export")
             destination = isempty(positional) ? repo * ".export" : positional[1]
@@ -240,15 +240,15 @@ function main(args=ARGS)
             json ? Dict{String,Any}("actions" => [_action_dict(a) for a in selected]) : join([String(a.kind) * " " * a.target * ": " * a.reason for a in selected], "\n")
         elseif command == "adopt"
             _require_yes(opts, "adopt")
-            isempty(positional) && throw(DockyardError(:usage, "adopt requires an existing path";
-                remediation="run dockyard adopt PATH --id NAME --yes"))
+            isempty(positional) && throw(JuliaShellError(:usage, "adopt requires an existing path";
+                remediation="run julia-shell adopt PATH --id NAME --yes"))
             id = String(get(opts, "id", basename(positional[1])))
             adopt!(repo, positional[1]; id=id, target=String(get(opts, "target", positional[1])),
                    profile=profile_name, mode=String(get(opts, "mode", "copy")),
                    allow_secret=Bool(get(opts, "allow_secret", false)),
                    request_id=String(get(opts, "request_id", string(uuid4()))))
         else
-            throw(DockyardError(:usage, "unknown command: $command"; remediation="run dockyard --help"))
+            throw(JuliaShellError(:usage, "unknown command: $command"; remediation="run julia-shell --help"))
         end
         _print_result(result, json)
         0
@@ -257,7 +257,7 @@ function main(args=ARGS)
             error_data = Dict{String,Any}("code" => "validation_error", "message" => sprint(showerror, err),
                 "details" => Dict("issues" => [_issue_dict(issue) for issue in err.issues]), "remediation" => "fix the profile and retry")
             code = 2
-        elseif err isa DockyardError
+        elseif err isa JuliaShellError
             error_data = Dict{String,Any}("code" => String(err.code), "message" => err.message,
                 "details" => err.details, "remediation" => err.remediation)
             code = err.code == :revision_conflict ? 4 : err.code in (:unsafe_path, :plan_blocked) ? 3 :
