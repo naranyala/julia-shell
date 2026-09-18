@@ -3,7 +3,7 @@ module DesktopEntries
 export DesktopEntry, DesktopApp, DesktopEntryError, ApplicationIndex,
        parse_desktop_entry, discover_applications, scan_desktop_entries,
        parse_exec, exec_arguments, launch_arguments, exec_basename,
-       normalize_app_id, resolve_application
+       normalize_app_id, resolve_application, resolve_icon
 
 "A parse or validation failure in one desktop-entry file."
 struct DesktopEntryError <: Exception
@@ -339,6 +339,37 @@ function _application_roots(; env=ENV)
         isempty(directory) || push!(roots, joinpath(directory, "applications"))
     end
     unique(roots)
+end
+
+"Resolve an icon name to a safe existing theme/pixmap path when possible."
+function resolve_icon(icon; env=ENV, theme="hicolor")
+    icon === nothing && return nothing
+    requested = strip(String(icon))
+    isempty(requested) && return nothing
+    if isabspath(requested)
+        return isfile(requested) ? abspath(requested) : nothing
+    end
+    home = get(env, "HOME", homedir())
+    data_home = get(env, "XDG_DATA_HOME", joinpath(home, ".local", "share"))
+    data_dirs = get(env, "XDG_DATA_DIRS", "/usr/local/share:/usr/share")
+    roots = String[data_home]
+    append!(roots, split(String(data_dirs), ':'))
+    extensions = isempty(splitext(requested)[2]) ? ("", ".svg", ".png", ".xpm") : ("",)
+    sizes = ("scalable", "512x512", "256x256", "128x128", "96x96", "64x64", "48x48", "32x32", "24x24", "16x16")
+    for root in unique(roots)
+        isempty(root) && continue
+        for size in sizes
+            for extension in extensions
+                candidate = joinpath(root, "icons", String(theme), size, "apps", requested * extension)
+                isfile(candidate) && return abspath(candidate)
+            end
+        end
+        for extension in extensions
+            candidate = joinpath(root, "pixmaps", requested * extension)
+            isfile(candidate) && return abspath(candidate)
+        end
+    end
+    nothing
 end
 
 "Discover visible XDG application entries, preserving user-directory precedence."

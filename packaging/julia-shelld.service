@@ -1,14 +1,22 @@
 [Unit]
 Description=julia-shell desktop continuity daemon
 After=graphical-session.target
-PartOf=graphical-session.target
+PartOf=julia-shell.target
 
 [Service]
-Type=simple
+Type=notify
+NotifyAccess=main
 ExecStart=%h/.local/bin/julia-shelld
 Restart=on-failure
 RestartSec=2s
+WatchdogSec=30s
+TimeoutStartSec=90s
+TimeoutStopSec=15s
+RuntimeDirectory=julia-shell
+RuntimeDirectoryMode=0700
+UMask=0077
+KillMode=process
 Environment=JULIA_SHELL_REPO=%h/.config/julia-shell/repository
 
 [Install]
-WantedBy=graphical-session.target
+WantedBy=julia-shell.target

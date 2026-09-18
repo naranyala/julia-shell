@@ -12,6 +12,7 @@ exec_arguments(args...; kwargs...) = DesktopEntries.exec_arguments(args...; kwar
 launch_arguments(args...; kwargs...) = DesktopEntries.launch_arguments(args...; kwargs...)
 normalize_app_id(args...; kwargs...) = DesktopEntries.normalize_app_id(args...; kwargs...)
 resolve_application(args...; kwargs...) = DesktopEntries.resolve_application(args...; kwargs...)
+resolve_icon(args...; kwargs...) = DesktopEntries.resolve_icon(args...; kwargs...)
 
 # Keep the old internal names available to existing JuliaShell tests and callers.
 _exec_tokens(args...; kwargs...) = DesktopEntries.parse_exec(args...; kwargs...)

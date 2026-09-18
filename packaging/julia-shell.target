@@ -1,0 +1,9 @@
+[Unit]
+Description=julia-shell desktop session
+Requires=julia-shelld.service
+Wants=julia-shell-ui.service
+After=graphical-session-pre.target
+PartOf=graphical-session.target
+
+[Install]
+WantedBy=graphical-session.target

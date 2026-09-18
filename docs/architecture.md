@@ -26,6 +26,10 @@ The Julia package is the policy boundary:
 - Reconcile classifies drift and coordinates mutation phases.
 - DesktopEntries discovers and parses desktop entries, expands safe launch
   arguments, and returns scored identity evidence.
+- Compositor defines `OutputState`, `ToplevelState`, `WindowRef`, launch
+  receipts, and operations shared by the fake adapter and Hyprland adapter.
+- Projection merges durable pins with running windows and application metadata
+  into the one JSON-safe state object rendered by QML.
 - Protocol implements the versioned JSONL envelope and validates request shape
   before dispatch.
 - Daemon owns the per-user Unix socket, recovers journals at startup, and
@@ -33,7 +37,9 @@ The Julia package is the policy boundary:
 - CLI provides stable human and JSON output.
 
 QML owns layout, animation, pointer/keyboard interaction, and accessibility
-labels. It must not become a second persistence model or write profile TOML.
+labels. It may use Quickshell services for presentation-only system surfaces,
+but profile state and application actions cross the daemon contract. It must not
+become a second persistence model or write profile TOML.
 
 ## Mutation ownership
 
@@ -64,8 +70,9 @@ Response:
 ```
 
 Errors use the same request ID and contain a structured error object. The
-current daemon methods are `status`, `plan`, `pins.pin`, `pins.unpin`, and
-`pins.reorder`. The event envelope is reserved for the future state projection:
+current daemon methods are `status`, `plan`, `state.get`, `pins.pin`,
+`pins.unpin`, `pins.reorder`, `apps.launch`, `apps.focus`, and `apps.close`.
+Successful pin mutations also emit a `state.changed` event after the response:
 
 ```json
 {"v":1,"event":"state.changed","revision":43,"topics":["pins"]}
@@ -112,6 +119,27 @@ returned as one response. The advisory repository lock serializes mutations
 across CLI and daemon processes.
 
 Dedicated worker queues, profile watchers, state event subscriptions, peer
-credential validation, compositor reconnect handling, and the `state.changed`
-event stream remain roadmap work. The current event envelope is reserved rather
-than emitted by the daemon.
+credential validation, and long-lived event subscriptions remain roadmap work.
+The current QML client uses bounded polling plus the post-mutation event hint,
+so service loss is visible and state is rebuilt from the daemon rather than
+mutated optimistically forever.
+
+## State projection
+
+`state_projection` returns a JSON-safe object with `schema = 1` and these stable
+top-level fields:
+
+| Field | Meaning |
+| --- | --- |
+| `revision` | Profile revision used to build the projection. |
+| `health`, `degraded` | Readiness state and human-readable diagnostics. |
+| `dock` | Edge, output policy, autohide policy, exclusive zone, and selected outputs. |
+| `items` | Ordered pinned app groups followed by stable unpinned running groups. |
+| `applications` | Visible XDG applications used by the launcher. |
+| `windows`, `outputs`, `workspaces`, `workspace_states` | Normalized compositor state. |
+| `plan` | Current managed-file plan summary, including conflicts and missing sources. |
+
+Each dock item keeps `missing`, `running`, `focused`, `urgent`, and
+`instance_count` explicit. This lets the UI communicate state without relying
+on color alone and preserves missing durable pins instead of silently removing
+them.

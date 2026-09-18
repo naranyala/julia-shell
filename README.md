@@ -4,9 +4,10 @@ julia-shell is a Julia desktop-continuity service for portable dotfiles and dura
 Wayland dock pins. Julia owns policy, persistence, revisions, snapshots, and
 transactions. The CLI and Quickshell/QML layer are clients of that authority.
 
-It is currently a safe-core vertical slice: the repository, planner, transactional
-writer, pin store, and JSONL daemon are usable; the compositor and shell
-integrations are still being built.
+It is currently a safe-core desktop slice: the repository, planner, transactional
+writer, pin store, JSONL daemon, compositor contract, canonical state projection,
+and a multi-monitor Quickshell bar are usable. The remaining desktop-environment
+layers are being added behind the same projection and IPC boundary.
 
 ## Current status
 
@@ -22,12 +23,20 @@ This repository is a tested safe-core vertical slice. It currently provides:
   idempotent request IDs.
 - Per-repository advisory locking for serialized mutations.
 - Desktop-entry scanning and explainable application identity resolution.
+- A compositor-neutral model with a deterministic fake adapter and a Hyprland
+  adapter for outputs, windows, focus, launch, and close operations.
+- Native systemd readiness/watchdog integration, a user-session target, and a
+  minimal `libwayland-client` transport binding for future generated protocols.
+- One canonical state projection containing dock items, grouped running windows,
+  applications, outputs, workspaces, plan health, and degraded diagnostics.
 - A versioned JSONL Unix-socket daemon contract with request validation and a QML
-  projection fixture.
+  client that supports state reads, pin updates, focus, close, and launch.
+- A multi-monitor Quickshell bar with a launcher, grouped app dock, notifications,
+  MPRIS controls, system tray, battery indicator, and control center.
 
-The real Quickshell panel, Hyprland adapter, filesystem watchers, archive
-validation, retention, PackageCompiler release bundle, and full fault matrix
-are not complete. See [`TODOS.md`](TODOS.md) for the requirement-level backlog.
+Filesystem watchers, archive validation, retention, PackageCompiler release
+bundles, lock/idle surfaces, dynamic theming, and the full fault matrix remain
+roadmap work. See [`TODOS.md`](TODOS.md) for the requirement-level backlog.
 
 ## Quick start
 
@@ -38,6 +47,13 @@ julia --project=. -e 'using Pkg; Pkg.instantiate()'
 ./bin/julia-shell plan --repo "$HOME/.config/julia-shell/repository"
 ./bin/julia-shell apply --repo "$HOME/.config/julia-shell/repository" --dry-run
 ./bin/julia-shell apply --repo "$HOME/.config/julia-shell/repository" --yes
+
+# Validate and install the project for the current user.
+./bin/julia-shell deploy --yes
+
+# In another terminal, start the shell daemon and Quickshell client.
+./bin/julia-shelld
+quickshell -p quickshell/Main.qml
 ```
 
 Start with `--dry-run` and inspect the plan before applying it. Mutations that can
@@ -76,9 +92,9 @@ remains `JuliaShell` because Julia module names must be valid identifiers.
   to be idempotent.
 - Secret-like sources require an explicit `--allow-secret` opt-in during adoption.
 
-The current implementation is not yet a complete desktop integration: shell IPC,
-compositor adapters, watchers, and stronger archive/retention policies are future
-work.
+The current implementation is not yet a complete desktop environment: watcher
+drift events, richer system controls, dynamic theming, lock/idle policy, plugins,
+and stronger archive/retention policies are future work.
 
 ## Documentation
 
@@ -87,6 +103,7 @@ work.
 - [Configuration](docs/configuration.md)
 - [CLI reference](docs/cli.md)
 - [Architecture and protocol](docs/architecture.md)
+- [Runtime abstractions](docs/runtime-abstractions.md)
 - [Safety and recovery](docs/safety-and-recovery.md)
 - [Development](docs/development.md)
 - [Compatibility and roadmap](docs/compatibility.md)
@@ -99,7 +116,7 @@ work.
 - `src/DesktopEntries.jl`: reusable XDG application catalog and safe launcher
   argument handling.
 - `test/`: temporary-tree unit and vertical-slice tests.
-- `quickshell/`: presentation fixture; it does not write profile TOML.
+- `quickshell/`: Quickshell presentation client; it does not write profile TOML.
 - `packaging/`: systemd user service template.
 - `bin/`: development CLI and daemon entry points.
 

@@ -119,6 +119,26 @@ The checked-in unit is a packaging template for the development checkout, not
 an installer. Set `JULIA_SHELL_REPO` to the repository path and update the
 unit's Julia and script paths before enabling it.
 
+## Start the Quickshell desktop surface
+
+With the daemon running in the same user session, launch the checked-in shell:
+
+```sh
+quickshell -p quickshell/Main.qml
+```
+
+The bar creates one `PanelWindow` for every connected Quickshell screen. Its
+launcher and dock use the daemon's `state.get` projection; clicking an app
+focuses a running window or sends a safe desktop-entry launch request. A
+right-click on an app toggles its durable pin. If the daemon is unavailable,
+the bar stays visible with a degraded-service message and retries on its
+bounded polling interval.
+
+The control center also exposes Quickshell's presentation-only MPRIS, system
+tray, notification, and UPower integrations. These are optional system
+services; their absence should not prevent profile or pin operations from being
+used through the CLI.
+
 ## Recovery locations
 
 Snapshots, journals, revision state, and the daemon socket live outside the

@@ -5,9 +5,10 @@ reproducible. It manages portable profile metadata, selected dotfiles, recovery
 snapshots, and durable application pins. Quickshell is the presentation layer;
 the Julia package remains the authority for state and mutations.
 
-The safe core is usable from a checkout today. The shell and compositor layers
-are intentionally described as roadmap work until their real protocols are
-validated.
+The safe core and first desktop slice are usable from a checkout today. The
+Quickshell client uses a versioned projection and the daemon has a Hyprland
+adapter; watcher-driven updates and the larger desktop-environment services are
+still roadmap work.
 
 ## Start here
 
@@ -17,6 +18,8 @@ validated.
 - [CLI reference](cli.md): commands, options, JSON output, and exit codes.
 - [Architecture and protocol](architecture.md): component boundaries and the
   Unix-socket contract.
+- [Runtime abstractions](runtime-abstractions.md): systemd, Wayland, and the
+  provider boundaries needed by a complete shell.
 - [Safety and recovery](safety-and-recovery.md): planning, snapshots, rollback,
   path rules, and recovery procedures.
 - [Development](development.md): repository layout, tests, and contribution
@@ -28,15 +31,15 @@ validated.
 
 ## Current status
 
-The repository contains a tested safe-core vertical slice. Profile parsing,
-path validation, deterministic planning, snapshot verification, journaled file
-deployment, durable pin operations, desktop-entry resolution, per-repository
-mutation locking, JSONL request validation and transport, and a daemon skeleton
-are implemented.
+The repository contains a tested safe-core desktop slice. Profile parsing, path
+validation, deterministic planning, snapshot verification, journaled file
+deployment, durable pin operations, desktop-entry resolution, compositor
+projection, app actions, per-repository mutation locking, JSONL request
+validation and transport, and a Quickshell bar are implemented.
 
-The real Quickshell panel, Hyprland adapter, filesystem watchers, generated
-entries, archive validation/retention, PackageCompiler release bundle, and full
-fault-injection/recovery matrix remain tracked in [`TODOS.md`](../TODOS.md).
+Filesystem watchers, generated entries, dynamic theming, lock/idle policy,
+plugins, archive validation/retention, PackageCompiler release bundle, and the
+full fault-injection/recovery matrix remain tracked in [`TODOS.md`](../TODOS.md).
 
 For the shortest path through the project, start with [Getting started](getting-started.md),
 then read [Safety and recovery](safety-and-recovery.md) before changing

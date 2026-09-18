@@ -1,8 +1,8 @@
 # This file is machine-generated - editing it directly is not advised
 
-julia_version = "1.12.7"
-manifest_format = "2.0"
-project_hash = "c6335a2531dc0658040891fd74eeb649e02da754"
+julia_version = "1.13.0"
+manifest_format = "2.1"
+project_hash = "062616720f2f04ab4064f54453efefaf62015b47"
 
 [[deps.Dates]]
 deps = ["Printf"]
@@ -10,10 +10,14 @@ uuid = "ade2ca70-3891-5945-98fb-dc099432e06a"
 version = "1.11.0"
 
 [[deps.JuliaShell]]
-deps = ["Dates", "SHA", "Sockets", "TOML", "UUIDs"]
+deps = ["Dates", "Libdl", "SHA", "Sockets", "TOML", "UUIDs"]
 path = "."
 uuid = "8f9a4b42-4b0f-4a4a-8e6e-5d3e4c9f1a70"
 version = "0.1.0"
+
+[[deps.Libdl]]
+uuid = "8f399da3-3557-5675-b5ff-fb832c97cbdb"
+version = "1.11.0"
 
 [[deps.Printf]]
 deps = ["Unicode"]
@@ -27,7 +31,7 @@ version = "1.11.0"
 
 [[deps.SHA]]
 uuid = "ea8e919c-243c-51af-8825-aaa63cd721ce"
-version = "0.7.0"
+version = "1.0.0"
 
 [[deps.Sockets]]
 uuid = "6462fe0b-24de-5631-8697-dd941f90decc"

@@ -1,0 +1,16 @@
+[Unit]
+Description=julia-shell Quickshell desktop surface
+After=julia-shelld.service
+Wants=julia-shelld.service
+PartOf=julia-shell.target
+
+[Service]
+Type=simple
+ExecStart=/usr/bin/quickshell -p %h/.config/julia-shell/quickshell/Main.qml
+Restart=on-failure
+RestartSec=2s
+TimeoutStopSec=10s
+UMask=0077
+
+[Install]
+WantedBy=julia-shell.target

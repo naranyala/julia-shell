@@ -88,8 +88,11 @@ function _print_result(result, json::Bool)
     end
 end
 
+# Compatibility alias retained while the generic codec lives in JSONLProtocol.
+_json_encode(value) = json_encode(value)
+
 function _human_result(result)
-    result isa AbstractDict && return join([string(key, ": ", value) for key in sort!(String[string(key) for key in keys(result)])], "\n")
+    result isa AbstractDict && return join([string(key, ": ", result[key]) for key in sort!(String[string(key) for key in keys(result)])], "\n")
     string(result)
 end
 
@@ -153,7 +156,7 @@ end
 "CLI entry point. Returns the documented process exit code instead of calling exit itself."
 function main(args=ARGS)
     if any(arg -> arg in ("-h", "--help"), args)
-        println("julia-shell init|status|plan|apply|adopt|diff|pin|unpin|reorder|snapshot|restore|verify|export|doctor")
+        println("julia-shell init|status|state|plan|apply|adopt|diff|pin|unpin|reorder|snapshot|restore|verify|export|doctor|deploy")
         return 0
     end
     command, positional, opts = try
@@ -169,8 +172,13 @@ function main(args=ARGS)
         result = if command == "init"
             init_repository(repo; profile=profile_name, force=Bool(opts["force"]))
             Dict{String,Any}("ok" => true, "repository" => abspath(repo), "profile" => profile_name)
+        elseif command == "deploy"
+            _require_yes(opts, "deploy")
+            Deploy.deploy!(Build.project_root(); env=ENV, yes=true)
         elseif command == "status"
             status(repo; profile=profile_name)
+        elseif command == "state"
+            state_projection(repo; profile=profile_name, env=ENV, compositor=_daemon_compositor(ENV))
         elseif command == "plan"
             current = plan(repo; profile=profile_name)
             json ? _plan_dict(current) : _human_plan(current)

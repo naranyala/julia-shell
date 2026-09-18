@@ -11,6 +11,7 @@ repository and profile; `JULIA_SHELL_REPO` supplies the default repository.
 | --- | --- | --- |
 | `init` | Create repository skeleton and starter profile. | Repository |
 | `status` | Show profile health, revision, pin count, and drift summary. | None |
+| `state` | Print the canonical dock, app, output, workspace, and health projection. | None |
 | `plan` | Produce deterministic proposed actions and a plan hash. | None |
 | `apply` | Snapshot, stage, commit, and verify planned file changes. | Live targets + state |
 | `adopt PATH` | Snapshot an existing path and import it into `files/`. | Repository + state |
@@ -25,6 +26,7 @@ repository and profile; `JULIA_SHELL_REPO` supplies the default repository.
 | `verify PATH` | Alias for snapshot verification. | None |
 | `export PATH` | Write a portable repository directory and checksum manifest. | Destination |
 | `doctor` | Check profile, paths, sources, and stale journals. | None |
+| `deploy` | Validate and install the project into user-owned runtime and systemd-user locations. | User install + service files |
 
 ## Common options and safety controls
 
@@ -42,6 +44,12 @@ repository and profile; `JULIA_SHELL_REPO` supplies the default repository.
 - `--target PATH`: target declaration used by `adopt`.
 - `--mode copy|symlink`: adoption deployment mode.
 - `--allow-secret`: explicitly override likely-secret adoption exclusion.
+
+`deploy` requires `--yes` and stages a user-scoped install under
+`$XDG_DATA_HOME/julia-shell/install` (or `~/.local/share/julia-shell/install`),
+wrappers under `~/.local/bin`, and service units under
+`$XDG_CONFIG_HOME/systemd/user`. It writes service files but does not enable or
+start them yet; activation remains an explicit operational step.
 
 ## Plan output
 
