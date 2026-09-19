@@ -1,11 +1,11 @@
 """
-Build-time utilities for validating and describing a JuliaShell checkout.
+Build-time validation and metadata utilities for a JuliaShell checkout.
 
 This module intentionally has no dependency on JuliaShell runtime policy. It is
 safe to include from a standalone `build.jl` script and is also available as
-`JuliaShell.Build` for tests and release tooling.
+`JuliaShell.BuildValidation` for tests and release tooling.
 """
-module Build
+module BuildValidation
 
 using Dates
 using SHA

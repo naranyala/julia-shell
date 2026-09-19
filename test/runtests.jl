@@ -389,28 +389,28 @@ end
             write(joinpath(root, file), file)
         end
         write(joinpath(root, "src", "Main.jl"), "module Main\nend\n")
-        manifest = Build.artifact_manifest(root)
+        manifest = BuildValidation.artifact_manifest(root)
         @test manifest["version"] == "1.2.3"
         @test manifest["files"][1]["path"] == "Manifest.toml"
         manifest_path = joinpath(root, "build-manifest.toml")
-        Build.write_manifest(manifest_path, manifest)
-        @test Build.verify_manifest(manifest_path; root)
-        @test isempty(Build.source_syntax_check(root))
-        @test isempty(Build.fixture_check(root))
-        @test isempty(Build.exported_symbols(root))
-        @test isempty(Build.export_issues(root))
-        @test Build.release_metadata(root)["version"] == "1.2.3"
+        BuildValidation.write_manifest(manifest_path, manifest)
+        @test BuildValidation.verify_manifest(manifest_path; root)
+        @test isempty(BuildValidation.source_syntax_check(root))
+        @test isempty(BuildValidation.fixture_check(root))
+        @test isempty(BuildValidation.exported_symbols(root))
+        @test isempty(BuildValidation.export_issues(root))
+        @test BuildValidation.release_metadata(root)["version"] == "1.2.3"
         write(joinpath(root, "src", "Main.jl"), "changed\n")
-        @test_throws Build.BuildError Build.verify_manifest(manifest_path; root)
+        @test_throws BuildValidation.BuildError BuildValidation.verify_manifest(manifest_path; root)
         rewritten = TOML.parsefile(manifest_path)
         rewritten["manifest_hash"] = "tampered"
         open(manifest_path, "w") do io
             TOML.print(io, rewritten)
         end
-        @test_throws Build.BuildError Build.verify_manifest(manifest_path; root)
-        @test isempty(Build.validate_repository(root))
+        @test_throws BuildValidation.BuildError BuildValidation.verify_manifest(manifest_path; root)
+        @test isempty(BuildValidation.validate_repository(root))
         write(joinpath(root, "src", "Broken.jl"), "module Broken\n")
-        @test !isempty(Build.source_syntax_check(root))
+        @test !isempty(BuildValidation.source_syntax_check(root))
     end
 end
 
@@ -422,8 +422,8 @@ end
         paths = Deploy.deployment_paths(; env)
         @test endswith(paths["install"], joinpath("julia-shell", "install"))
         @test Deploy.deployment_plan(; env)["service_files"] == ["julia-shelld.service", "julia-shell-ui.service", "julia-shell.target"]
-        @test_throws Deploy.DeploymentError Deploy.deploy!(Build.project_root(); env, yes=false)
-        result = Deploy.deploy!(Build.project_root(); env, yes=true)
+        @test_throws Deploy.DeploymentError Deploy.deploy!(BuildValidation.project_root(); env, yes=false)
+        result = Deploy.deploy!(BuildValidation.project_root(); env, yes=true)
         @test result["ok"]
         @test isfile(joinpath(paths["install"], "Project.toml"))
         @test isfile(joinpath(paths["bin"], "julia-shell"))

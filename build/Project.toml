@@ -1,0 +1,17 @@
+name = "JuliaShellBuild"
+uuid = "f1d4c2df-c2dd-4d55-91f5-d90e943863bc"
+version = "0.1.0"
+
+[deps]
+Build = "5da36931-51f3-4d76-a0c5-1b425ddf9f7b"
+Dates = "ade2ca70-3891-5945-98fb-dc099432e06a"
+SHA = "ea8e919c-243c-51af-8825-aaa63cd721ce"
+Test = "8dfed614-e22c-5e08-85e1-65c5234f0b40"
+TOML = "fa267f1f-6049-4f14-aa54-33bafae1ed76"
+
+[sources]
+Build = {path = "../../Build.jl"}
+
+[compat]
+Build = "0.2"
+julia = "1.10"

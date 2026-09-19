@@ -36,6 +36,29 @@ Run the package suite:
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
+Run build-system targets through the separate development environment. It uses
+the sibling `../Build.jl` checkout and does not become a JuliaShell runtime or
+deployment dependency:
+
+```sh
+julia --project=build -e 'using Pkg; Pkg.instantiate()'
+julia --project=build build.jl check
+julia --project=build build.jl test
+julia --project=build build.jl manifest --output /tmp/julia-shell-manifest.toml
+julia --project=build build.jl verify --output /tmp/julia-shell-manifest.toml
+julia --project=build build.jl clean
+julia --project=build -e 'using Pkg; Pkg.test()'
+```
+
+Available targets are `all` (the default), `check`, `test`, `inventory`,
+`manifest`, `verify`, `metadata`, `deploy`, and `clean`. `manifest` is a file
+target that rebuilds only when its source inputs change; `verify` depends on it,
+and `clean` removes it through Build.jl. Manifest output defaults to the system
+temporary directory; pass `--output` to retain one elsewhere. Pass `--dry-run` to see build-graph
+commands without running them. CI or a release checkout must place Build.jl at
+the sibling path, or replace `build/Project.toml`'s local source with a pinned
+registry or Git dependency.
+
 Load the package without running tests:
 
 ```sh

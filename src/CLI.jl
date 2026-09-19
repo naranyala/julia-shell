@@ -174,7 +174,7 @@ function main(args=ARGS)
             Dict{String,Any}("ok" => true, "repository" => abspath(repo), "profile" => profile_name)
         elseif command == "deploy"
             _require_yes(opts, "deploy")
-            Deploy.deploy!(Build.project_root(); env=ENV, yes=true)
+            Deploy.deploy!(BuildValidation.project_root(); env=ENV, yes=true)
         elseif command == "status"
             status(repo; profile=profile_name)
         elseif command == "state"

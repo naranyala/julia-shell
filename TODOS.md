@@ -210,14 +210,14 @@ They should have narrow APIs and package-quality tests so they can later be
 extracted without redesigning JuliaShell's product policy. None may create a
 second persistence authority.
 
-### `Build.jl` (internal build and release utility boundary)
+### `BuildValidation.jl` (internal validation and release utility boundary)
 
 Purpose: make repository validation and release preparation deterministic,
-inspectable, and independent of the runtime daemon. `Build.jl` is a build
+inspectable, and independent of the runtime daemon. `BuildValidation.jl` is a validation
 utility module, not a second application entry point or runtime configuration
 store.
 
-- [x] Add standalone `Build.jl` APIs for project-root discovery, sorted source
+- [x] Add standalone `BuildValidation.jl` APIs for project-root discovery, sorted source
   inventory, structural repository checks, and build reports.
 - [x] Add deterministic artifact manifests containing project identity, file
   sizes, and SHA-256 hashes; write them atomically and verify them before
@@ -252,7 +252,7 @@ turning the repository into a mutable install directory.
 
 - [x] Add a deployment plan with explicit install, bin, systemd-user, and
   repository paths derived from HOME/XDG variables.
-- [x] Validate the source with `Build.validate_repository` before copying;
+- [x] Validate the source with `BuildValidation.validate_repository` before copying;
   stage the install tree and generate absolute-path Julia wrappers for the CLI
   and daemon.
 - [x] Install service templates for the daemon, UI, and user target with the
@@ -556,7 +556,7 @@ models, deterministic fakes, and no requirement for a running desktop.
 6. **`ApplicationLauncher.jl`** — define lifecycle-aware launch receipts and
    safe argv first; then connect desktop-entry identity, activation tokens, and
    systemd scopes. Do not add more launch policy to `AbstractCompositor`.
-7. **`Build.jl`/`Deploy.jl`** — finish exported-symbol checks, preflight,
+7. **`BuildValidation.jl`/`Deploy.jl`** — finish exported-symbol checks, preflight,
    ownership manifests, dry-run deployment, and post-install health checks;
    these serve the other abstractions but must not become runtime authority.
 

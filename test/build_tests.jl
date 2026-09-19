@@ -1,12 +1,12 @@
 using Test
 
-# Build.jl must remain usable without loading the runtime package.
-module StandaloneBuildTools
-include(joinpath(@__DIR__, "..", "src", "Build.jl"))
+# BuildValidation.jl must remain usable without loading the runtime package.
+module StandaloneBuildValidation
+include(joinpath(@__DIR__, "..", "src", "BuildValidation.jl"))
 end
 
 @testset "standalone build validation" begin
-    build = StandaloneBuildTools.Build
+    build = StandaloneBuildValidation.BuildValidation
     mktempdir() do root
         mkpath(joinpath(root, "src"))
         write(joinpath(root, "Project.toml"), "name = \"Fixture\"\nversion = \"1.0.0\"\n")

@@ -2,7 +2,7 @@
 module Deploy
 
 using Dates
-using ..Build
+using ..BuildValidation
 
 const _SERVICE_FILES = ("julia-shelld.service", "julia-shell-ui.service", "julia-shell.target")
 
@@ -26,7 +26,7 @@ end
 
 function _plan(source::String; env=ENV)
     paths = deployment_paths(; env)
-    files = Build.source_inventory(source)
+    files = BuildValidation.source_inventory(source)
     Dict{String,Any}("source" => source, "paths" => paths, "files" => files,
                      "service_files" => collect(_SERVICE_FILES))
 end
@@ -61,10 +61,10 @@ function _service(source::String, name::String, paths)
 end
 
 "Copy the validated project into a user-scoped immutable-ish install tree."
-function deploy!(source::AbstractString=Build.project_root(); env=ENV, yes=false)
+function deploy!(source::AbstractString=BuildValidation.project_root(); env=ENV, yes=false)
     yes || throw(DeploymentError(:confirmation_required, "deployment requires explicit confirmation; pass yes=true or --yes"))
-    source = Build.project_root(source)
-    issues = Build.validate_repository(source)
+    source = BuildValidation.project_root(source)
+    issues = BuildValidation.validate_repository(source)
     isempty(issues) || throw(DeploymentError(:build_invalid, "cannot deploy an invalid project: " * join(issues, "; ")))
     paths = deployment_paths(; env)
     install = paths["install"]
@@ -73,7 +73,7 @@ function deploy!(source::AbstractString=Build.project_root(); env=ENV, yes=false
     stage = mktempdir(parent)
     backup = nothing
     try
-        for relative in Build.source_inventory(source)
+        for relative in BuildValidation.source_inventory(source)
             destination = joinpath(stage, relative)
             mkpath(dirname(destination))
             cp(joinpath(source, relative), destination; force=true)
@@ -109,8 +109,8 @@ function deploy!(source::AbstractString=Build.project_root(); env=ENV, yes=false
     end
 end
 
-function deployment_plan(source::AbstractString=Build.project_root(); env=ENV)
-    _plan(Build.project_root(source); env)
+function deployment_plan(source::AbstractString=BuildValidation.project_root(); env=ENV)
+    _plan(BuildValidation.project_root(source); env)
 end
 
 end

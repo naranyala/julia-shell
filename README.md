@@ -128,7 +128,9 @@ Run the full suite:
 julia --project=. -e 'using Pkg; Pkg.test()'
 ```
 
-The project intentionally uses Julia standard libraries only. See
+The runtime uses Julia standard libraries only; the separate `build/`
+environment uses the external sibling [`Build.jl`](../Build.jl) target graph.
+See
 [`docs/development.md`](docs/development.md) for conventions and
 [`docs/safety-and-recovery.md`](docs/safety-and-recovery.md) before changing
 mutating code. When behavior changes, update the relevant documentation page and

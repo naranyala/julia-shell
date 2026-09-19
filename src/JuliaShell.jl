@@ -7,7 +7,7 @@ using Sockets
 using TOML
 using UUIDs
 
-include("Build.jl")
+include("BuildValidation.jl")
 include("Deploy.jl")
 
 include("Domain.jl")
@@ -34,7 +34,7 @@ include("Daemon.jl")
 include("CLI.jl")
 
 export SUPPORTED_SCHEMA, Pin, Dock, DotfileEntry, Profile, PlanAction, Plan,
-       Build, Deploy,
+       BuildValidation, Deploy,
        SnapshotRef, TransactionResult, JuliaShellError, ValidationError,
        ValidationIssue, xdg_paths, repository_profile_path, init_repository,
        load_profile, save_profile, profile_dict, resolve_variables,
